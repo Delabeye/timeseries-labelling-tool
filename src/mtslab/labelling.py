@@ -20,7 +20,7 @@ from matplotlib.collections import PatchCollection
 from mtslab.utils import *
 from mtslab.visualisation import COLORS, MatrixPlotter
 
-_PAUSE = 1e-2  # drawing pause time for plotting routines (in seconds)
+_PAUSE = 1e-1  # drawing pause time for plotting routines (in seconds)
 
 
 class Labeller:

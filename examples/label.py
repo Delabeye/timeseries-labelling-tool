@@ -1,12 +1,11 @@
-from __future__ import annotations
-
 from pathlib import Path
 from operator import itemgetter
 import matplotlib.pyplot as plt
 
 ### Local
 from mtslab import Labeller, MultiHotEncoder
-from mtslab import rebuild, decompress_binary_matrix, compress_binary_matrix, update_meta
+from mtslab import rebuild, store, fetch_metadata, update_meta
+from mtslab import decompress_binary_matrix, compress_binary_matrix
 
 
 ### Load raw data
@@ -20,7 +19,7 @@ print(f"\n{df_raw=}\n{meta=}\n")
 dfs = [df_raw[["I1", "A1"]]]
 
 ### (optional) Spectrogram views
-fs, win, ovl = 6250, 0.2, 0.5
+fs, win, ovl = meta["fs"], 0.2, 0.5  # (fs, window, overlap) in (Hz, s, %)
 kw_specgram = {
     col: {
         "xextent": (df_raw.index[0], df_raw.index[-1]),
@@ -41,7 +40,6 @@ if label_these_time_series := True:
 
 ### Transfer labels to metadata (save within parquet directory)
 if transfer_labels_to_metadata := True:
-
     # (optional) Load labels into the Labeller
     labeller = Labeller(dfs, save_to, label_names=label_names)
     plt.close("all")
@@ -50,7 +48,7 @@ if transfer_labels_to_metadata := True:
     # Fetch decomposition labels (compressed)
     compressed_labels = labeller.labels_compressed_
     print(f"\n{compressed_labels=}")
-    
+
     # Compute clustering labels (compressed multihot > onehot > compressed)
     decompressed = decompress_binary_matrix(
         compressed_labels, index=labeller.labels_.index
@@ -61,7 +59,6 @@ if transfer_labels_to_metadata := True:
     print(f"\n{clustering_labels_as_onehot=}")
     clustering_labels = compress_binary_matrix(clustering_labels_as_onehot)
     print(f"\n{clustering_labels=}")
-
 
     # Map clustering to decomposition labels
     mapping = {
