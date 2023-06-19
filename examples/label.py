@@ -7,13 +7,16 @@ from mtslab import Labeller, MultiHotEncoder
 from mtslab import rebuild, store, fetch_metadata, update_meta
 from mtslab import decompress_binary_matrix, compress_binary_matrix
 
+from icecream import ic, install
+install()
+
 
 ### Load raw data
 load_data_from = Path(__file__).parent / f"dataset/data/trial42"
 save_to = Path(__file__).parent / f"dataset/labels/label_trial42.pkl"
 
 df_raw, meta = itemgetter("data", "meta")(rebuild(load_data_from))
-print(f"\n{df_raw=}\n{meta=}\n")
+print(f"\n{df_raw=}\n\n{meta=}\n")
 
 ### Data to be used by the Labeller
 dfs = [df_raw[["I1", "A1"]]]

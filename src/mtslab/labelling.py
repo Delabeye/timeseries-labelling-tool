@@ -20,7 +20,8 @@ from matplotlib.collections import PatchCollection
 from mtslab.utils import *
 from mtslab.visualisation import COLORS, MatrixPlotter
 
-_PAUSE = 1e-1  # drawing pause time for plotting routines (in seconds)
+_PAUSE = 1e-2  # drawing pause time for plotting routines (in seconds)
+_EVENT_PAUSE = 1e-4  # event pause time (in seconds)
 
 
 class Labeller:
@@ -97,7 +98,7 @@ class Labeller:
 
         ### Setup SWITCH VIEW (data)
         # switch data button
-        self._switchdatabtn_ax = plt.axes([0.9, 0.16, 0.095, 0.07])
+        self._switchdatabtn_ax = plt.axes([0.95, 0.16, 0.045, 0.07])
         self._switchdatabtn = Button(
             self._switchdatabtn_ax, "", image=self._icons["timeseries"]
         )
@@ -106,7 +107,7 @@ class Labeller:
 
         ### Setup SWITCH VIEW (spectrogram)
         # switch data button
-        self._switchspecgrambtn_ax = plt.axes([0.9, 0.1, 0.095, 0.05])
+        self._switchspecgrambtn_ax = plt.axes([0.95, 0.1, 0.045, 0.05])
         self._switchspecgrambtn = Button(
             self._switchspecgrambtn_ax, "", image=self._icons["spectrogram"]
         )
@@ -114,7 +115,7 @@ class Labeller:
         self._switchspecgrambtn.label.set_fontsize(self._default_font_size)
 
         ### Setup TICK/UNTICK (segmentation)
-        self._tick_mode = None
+        self._tick_mode = "untick" # default is "tick"
         self._xticks = [self._df.index[0], self._df.index[-1]]
         self._xticks_vlines = [None, None]
         # tick & untick events
@@ -125,10 +126,17 @@ class Labeller:
             "button_press_event", self._untick_onclick
         )
         # tick & untick & lock (ticking) button
-        self._tickbtn_ax = plt.axes([0.9, 0.28, 0.095, 0.1])
+        self._tickbtn_ax = plt.axes([0.95, 0.28, 0.045, 0.1])
         self._tickbtn = Button(self._tickbtn_ax, "")
         self._toggle_tick_mode()
         self._tickbtn.on_clicked(self._toggle_tick_mode)
+        # LOCK (ticking) button
+        self._tick_locked = True # default is unlocked (False)
+        self._lock_tickbtn_ax = plt.axes([0.95, 0.4, 0.045, 0.05])
+        self._lock_tickbtn = Button(self._lock_tickbtn_ax, "")
+        self._toggle_lock_tick_mode()
+        self._lock_tickbtn.on_clicked(self._toggle_lock_tick_mode)
+
 
         ### Setup LABEL (labelling)
         self._label_mode = None
@@ -203,7 +211,6 @@ class Labeller:
         self._i_column = 0  # reset column index
         self.ax_data.clear()
         self._view_data()
-        # plt.pause(_PAUSE)
         if hasattr(self, "_xticks"):
             self._redraw_xticks()
         plt.pause(_PAUSE)
@@ -212,6 +219,7 @@ class Labeller:
     def _switch_view_specgram(self, event: Event = None):
         self._i_column += 1  # increment column index
         self.ax_data.clear()
+        ic([ax for ax in self.fig.get_axes() if hasattr(ax, "ylabel")])
         self._view_specgram()
         if hasattr(self, "_xticks"):
             self._redraw_xticks()
@@ -256,14 +264,14 @@ class Labeller:
     @_event
     def _tick_onclick(self, event: Event = None):
         """Add new tick and vline upon clicking."""
-        if self._tick_mode == "tick":
+        if self._tick_mode == "tick" and not self._tick_locked:
             if event.inaxes in [self.ax_data]:
                 self._add_xticks([event.xdata])
 
     @_event
     def _untick_onclick(self, event: Event = None):
         """Delete closest tick and vlines upon clicking."""
-        if self._tick_mode == "untick" and len(self._xticks) > 2:
+        if self._tick_mode == "untick" and len(self._xticks) > 2 and not self._tick_locked:
             if event.inaxes in [self.ax_data]:
                 ix = event.xdata
                 idx = np.nanargmin(np.abs(np.array(self._xticks[1:-1]) - ix)) + 1
@@ -274,32 +282,43 @@ class Labeller:
             self._force_update_labels()
 
     @_event
+    def _toggle_lock_tick_mode(self, event: Event = None):
+        """Toggle between tick locking modes (circular shift)."""
+        self._tick_locked = not self._tick_locked
+        if self._tick_locked is True:
+            self._lock_tickbtn.color = mcolors.to_rgba("xkcd:red")
+            self._lock_tickbtn.hovercolor = mcolors.to_rgba("xkcd:red", 0.5)
+            self._lock_tickbtn.label.set_text("Lock")
+        elif self._tick_locked is False:
+            self._lock_tickbtn.color = mcolors.to_rgba("xkcd:green")
+            self._lock_tickbtn.hovercolor = mcolors.to_rgba("xkcd:green", 0.5)
+            self._lock_tickbtn.label.set_text("Unlocked")
+
+    @_event
     def _toggle_tick_mode(self, event: Event = None):
         """Toggle between ticking modes (circular shift)."""
-        modes = ["tick", "untick", None]
+        modes = ["tick", "untick"]
         self._tick_mode = modes[(modes.index(self._tick_mode) + 1) % len(modes)]
         if self._tick_mode == "tick":
             self._tickbtn.color = mcolors.to_rgba("xkcd:turquoise")
-            self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:turquoise", alpha=0.5)
+            self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:turquoise", 0.5)
             self._tickbtn.label.set_text("Tick")
         elif self._tick_mode == "untick":
             self._tickbtn.color = mcolors.to_rgba("xkcd:coral")
-            self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:coral", alpha=0.5)
+            self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:coral", 0.5)
             self._tickbtn.label.set_text("Untick")
-        elif self._tick_mode is None:
-            self._tickbtn.color = mcolors.to_rgba("tab:gray", 0.8)
-            self._tickbtn.hovercolor = mcolors.to_rgba("tab:gray", 0.4)
-            self._tickbtn.label.set_text("Ticking\nlocked")
-        self._tickbtn.label.set_fontsize(self._default_font_size)
+        # plt.pause(1e-5)
 
     def _toggle_save_uptodate_btn(self):
         if hasattr(self, "_savebtn"):
             if self.label_plotter.save_uptodate:
-                self._savebtn.color = mcolors.to_rgba("xkcd:green", alpha=0.8)
-                self._savebtn.hovercolor = mcolors.to_rgba("xkcd:green", alpha=0.4)
+                if self._savebtn.color != mcolors.to_rgba("xkcd:green", alpha=0.8):
+                    self._savebtn.color = mcolors.to_rgba("xkcd:green", alpha=0.8)
+                    plt.pause(_EVENT_PAUSE)
             else:
-                self._savebtn.color = mcolors.to_rgba("xkcd:orange", alpha=0.8)
-                self._savebtn.hovercolor = mcolors.to_rgba("xkcd:orange", alpha=0.4)
+                if self._savebtn.color != mcolors.to_rgba("xkcd:orange", alpha=0.8):
+                    self._savebtn.color = mcolors.to_rgba("xkcd:orange", alpha=0.8)
+                    plt.pause(_EVENT_PAUSE)
 
     ###
     ###     Data Plotter
@@ -323,6 +342,7 @@ class Labeller:
             self.current_data[self.current_column].values,
             **self._kw_specgram[self.current_column],
         )
+        self.ax_data.legend([self.current_column], loc="upper right")
 
     def setup_plotter(self):
         """Setup figure"""

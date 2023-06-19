@@ -41,10 +41,10 @@ import scipy.signal
 import scipy.interpolate
 
 
-# # Dev only
-# from icecream import ic, install
+# Dev only
+from icecream import ic, install
 
-# install()  # icecream
+install()  # icecream
 
 
 """
