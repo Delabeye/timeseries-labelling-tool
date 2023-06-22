@@ -289,10 +289,12 @@ class Labeller:
             self._lock_tickbtn.color = mcolors.to_rgba("xkcd:red")
             self._lock_tickbtn.hovercolor = mcolors.to_rgba("xkcd:red", 0.5)
             self._lock_tickbtn.label.set_text("Lock")
+            plt.pause(_EVENT_PAUSE)
         elif self._tick_locked is False:
             self._lock_tickbtn.color = mcolors.to_rgba("xkcd:green")
             self._lock_tickbtn.hovercolor = mcolors.to_rgba("xkcd:green", 0.5)
             self._lock_tickbtn.label.set_text("Unlocked")
+            plt.pause(_EVENT_PAUSE)
 
     @_event
     def _toggle_tick_mode(self, event: Event = None):
@@ -303,11 +305,12 @@ class Labeller:
             self._tickbtn.color = mcolors.to_rgba("xkcd:turquoise")
             self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:turquoise", 0.5)
             self._tickbtn.label.set_text("Tick")
+            plt.pause(_EVENT_PAUSE)
         elif self._tick_mode == "untick":
             self._tickbtn.color = mcolors.to_rgba("xkcd:coral")
             self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:coral", 0.5)
             self._tickbtn.label.set_text("Untick")
-        # plt.pause(1e-5)
+            plt.pause(_EVENT_PAUSE)
 
     def _toggle_save_uptodate_btn(self):
         if hasattr(self, "_savebtn"):
