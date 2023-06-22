@@ -7,9 +7,6 @@ from mtslab import Labeller, MultiHotEncoder
 from mtslab import rebuild, store, fetch_metadata, update_meta
 from mtslab import decompress_binary_matrix, compress_binary_matrix
 
-from icecream import ic, install
-install()
-
 
 ### Load raw data
 load_data_from = Path(__file__).parent / f"dataset/data/trial42"
