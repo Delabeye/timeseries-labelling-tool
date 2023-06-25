@@ -1,7 +1,7 @@
 name: labelling_env
 channels:
-  - anaconda
   - conda-forge
+  - anaconda
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -182,6 +182,7 @@ dependencies:
   - zstd=1.5.5=hc292b87_0
   - pip:
       - docopt==0.6.2
+      - nest-asyncio==1.5.6
       - pipreqs==0.4.13
       - yarg==0.1.9
 prefix: /home/neko/miniconda3/envs/labelling_env

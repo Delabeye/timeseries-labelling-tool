@@ -1,6 +1,6 @@
 # timeseries-labelling-tool
 
-A simple matplotlib-based time series labeller, compatible with multi-label disaggregation.
+A rudimentary matplotlib-based time series labeller, compatible with multi-label disaggregation.
 
 ## Installation
 

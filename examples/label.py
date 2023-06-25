@@ -8,6 +8,7 @@ from mtslab import rebuild, store, fetch_metadata, update_meta
 from mtslab import decompress_binary_matrix, compress_binary_matrix
 
 
+
 ### Load raw data
 load_data_from = Path(__file__).parent / f"dataset/data/trial42"
 save_to = Path(__file__).parent / f"dataset/labels/label_trial42.pkl"
@@ -36,13 +37,12 @@ label_names = ["heater", "grinder", "pump", "infuser", "electronics"]
 ### Start labelling data (save as pickle)
 if label_these_time_series := True:
     labeller = Labeller(dfs, save_to, label_names=label_names, kw_specgram=kw_specgram)
-    labeller.run()
+    labeller.show()
 
 ### Transfer labels to metadata (save within parquet directory)
 if transfer_labels_to_metadata := True:
     # (optional) Load labels into the Labeller
-    labeller = Labeller(dfs, save_to, label_names=label_names)
-    plt.close("all")
+    labeller = Labeller(dfs, save_to, label_names=label_names).close()
     labeller.load(save_to, erase=True)
 
     # Fetch decomposition labels (compressed)
