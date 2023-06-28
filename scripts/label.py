@@ -10,8 +10,8 @@ from mtslab import decompress_binary_matrix, compress_binary_matrix
 
 
 ### Load raw data
-load_data_from = Path(__file__).parent / f"dataset/data/trial42"
-save_to = Path(__file__).parent / f"dataset/labels/label_trial42.pkl"
+load_data_from = Path(__file__).parent / f"sample_dataset/data/trial42"
+save_to = Path(__file__).parent / f"sample_dataset/labels/label_trial42.pkl"
 
 df_raw, meta = itemgetter("data", "meta")(rebuild(load_data_from))
 print(f"\n{df_raw=}\n\n{meta=}\n")
