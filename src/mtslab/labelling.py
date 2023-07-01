@@ -16,9 +16,13 @@ from tkinter import filedialog as fd
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 
+import nest_asyncio
+
 ### Local
 from mtslab.utils import *
 from mtslab.visualisation import COLORS, MatrixPlotter
+
+nest_asyncio.apply()
 
 _PAUSE = 1e-2  # drawing pause time for plotting routines (in seconds)
 _EVENT_PAUSE = 1e-4  # event pause time (in seconds)
@@ -62,8 +66,9 @@ class Labeller:
         self.save_to = save_to
         self.label_names = label_names
         self._kw_specgram = kw_specgram
-
         self._df = self.data[0]  # main dataframe (for index, etc.)
+
+        warnings.simplefilter("error", RuntimeWarning)  # Runtimewarning as error
 
         ### Setup figure, color, font, icons
         self.fig = plt.figure(str(self.save_to))
@@ -115,7 +120,7 @@ class Labeller:
         self._switchspecgrambtn.label.set_fontsize(self._default_font_size)
 
         ### Setup TICK/UNTICK (segmentation)
-        self._tick_mode = "untick" # default is "tick"
+        self._tick_mode = False  # default is "tick"
         self._xticks = [self._df.index[0], self._df.index[-1]]
         self._xticks_vlines = [None, None]
         # tick & untick events
@@ -131,12 +136,14 @@ class Labeller:
         self._toggle_tick_mode()
         self._tickbtn.on_clicked(self._toggle_tick_mode)
         # LOCK (ticking) button
-        self._tick_locked = True # default is unlocked (False)
+        self._tick_locked = True  # default is unlocked (False)
         self._lock_tickbtn_ax = plt.axes([0.95, 0.4, 0.045, 0.05])
         self._lock_tickbtn = Button(self._lock_tickbtn_ax, "")
         self._toggle_lock_tick_mode()
         self._lock_tickbtn.on_clicked(self._toggle_lock_tick_mode)
-
+        self._lock_action = self.fig.canvas.mpl_connect(
+            "button_press_event", self._on_right_click
+        )
 
         ### Setup LABEL (labelling)
         self._label_mode = None
@@ -152,7 +159,7 @@ class Labeller:
 
         ### Setup button SAVE
         self.autosave = None  # seconds (disabled if None)
-        self._time_last_save = time.time()
+        self._time_last_save = time.perf_counter()
         # save button
         self._savebtn_ax = plt.axes([0.9, 0.88, 0.095, 0.05])
         self._savebtn = Button(
@@ -186,10 +193,16 @@ class Labeller:
     ###     Events
     ###
 
-    def _event(method):
-        def wrapper(self, event: Event = None):
-            method(self, event)
-            self._on_any_event(event)
+    def _event(method: Callable):
+        """Event wrapper. Catch `RuntimeWarning` and call `_on_any_event`."""
+
+        def wrapper(self: Self, event: Event = None):
+            if event is None or event.button == 1:
+                try:
+                    method(self, event)
+                except RuntimeWarning:
+                    pass
+                self._on_any_event(event)
 
         return wrapper
 
@@ -198,7 +211,7 @@ class Labeller:
         ### Autosave
         if (
             getattr(self, "autosave", False)
-            and (t := time.time()) - self._time_last_save > 60
+            and (t := time.perf_counter()) - self._time_last_save > 60
         ):
             self.save()
             self._time_last_save = t
@@ -219,7 +232,6 @@ class Labeller:
     def _switch_view_specgram(self, event: Event = None):
         self._i_column += 1  # increment column index
         self.ax_data.clear()
-        ic([ax for ax in self.fig.get_axes() if hasattr(ax, "ylabel")])
         self._view_specgram()
         if hasattr(self, "_xticks"):
             self._redraw_xticks()
@@ -264,14 +276,15 @@ class Labeller:
     @_event
     def _tick_onclick(self, event: Event = None):
         """Add new tick and vline upon clicking."""
-        if self._tick_mode == "tick" and not self._tick_locked:
+        if self._tick_mode and not self._tick_locked:
             if event.inaxes in [self.ax_data]:
                 self._add_xticks([event.xdata])
+                plt.pause(_EVENT_PAUSE)
 
     @_event
     def _untick_onclick(self, event: Event = None):
         """Delete closest tick and vlines upon clicking."""
-        if self._tick_mode == "untick" and len(self._xticks) > 2 and not self._tick_locked:
+        if not self._tick_mode and len(self._xticks) > 2 and not self._tick_locked:
             if event.inaxes in [self.ax_data]:
                 ix = event.xdata
                 idx = np.nanargmin(np.abs(np.array(self._xticks[1:-1]) - ix)) + 1
@@ -280,6 +293,7 @@ class Labeller:
                     vline.remove()
                 del self._xticks_vlines[idx]
             self._force_update_labels()
+            plt.pause(_EVENT_PAUSE)
 
     @_event
     def _toggle_lock_tick_mode(self, event: Event = None):
@@ -296,21 +310,24 @@ class Labeller:
             self._lock_tickbtn.label.set_text("Unlocked")
             plt.pause(_EVENT_PAUSE)
 
+    def _on_right_click(self, event:Event = None):
+        """Remove closest label upon right clicking."""
+        if event.button == 3 and event.inaxes in [self.ax_data]:
+            self._toggle_lock_tick_mode()
+
     @_event
     def _toggle_tick_mode(self, event: Event = None):
         """Toggle between ticking modes (circular shift)."""
-        modes = ["tick", "untick"]
-        self._tick_mode = modes[(modes.index(self._tick_mode) + 1) % len(modes)]
-        if self._tick_mode == "tick":
+        self._tick_mode = not self._tick_mode
+        if self._tick_mode:
             self._tickbtn.color = mcolors.to_rgba("xkcd:turquoise")
             self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:turquoise", 0.5)
             self._tickbtn.label.set_text("Tick")
-            plt.pause(_EVENT_PAUSE)
-        elif self._tick_mode == "untick":
+        elif not self._tick_mode:
             self._tickbtn.color = mcolors.to_rgba("xkcd:coral")
             self._tickbtn.hovercolor = mcolors.to_rgba("xkcd:coral", 0.5)
             self._tickbtn.label.set_text("Untick")
-            plt.pause(_EVENT_PAUSE)
+        plt.pause(_EVENT_PAUSE)
 
     def _toggle_save_uptodate_btn(self):
         if hasattr(self, "_savebtn"):
@@ -520,11 +537,17 @@ class Labeller:
     def save(self, save_to: Path | str = None, backup: bool = False):
         self.label_plotter.update_barh()  # reload barh artists
         self.label_plotter.save(save_to or self.save_to, backup=backup)
+        print(f"Labels saved to {self.save_to}")
         if save_to == self.save_to:
             self.label_plotter.save_uptodate = True
 
-    def run(self):
+    def show(self) -> Self:
         plt.show()
+        return self
+    
+    def close(self) -> Self:
+        plt.close("all")
+        return self
 
 
 class LabelPlotter:

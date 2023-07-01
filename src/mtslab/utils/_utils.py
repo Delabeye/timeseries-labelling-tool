@@ -8,10 +8,9 @@ General purpose classes, functions, global variables and imports
 from mtslab.utils._type_utils import *
 
 ### External
-import os, sys, shutil
-import inspect
+import shutil
 from pathlib import Path
-import contextlib
+import warnings
 
 import cloudpickle as pickle
 import json
@@ -31,7 +30,6 @@ matplotlib.use("Qt5Agg") # backend
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import seaborn as sns
 
 import pandas as pd
 import dask.dataframe as dd
@@ -41,10 +39,10 @@ import scipy.signal
 import scipy.interpolate
 
 
-# Dev only
-from icecream import ic, install
+# # Dev only
+# from icecream import ic, install
 
-install()  # icecream
+# install()  # icecream
 
 
 """
