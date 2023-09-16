@@ -181,8 +181,13 @@ dependencies:
   - zlib=1.2.13=h5eee18b_0
   - zstd=1.5.5=hc292b87_0
   - pip:
+      - asttokens==2.2.1
+      - colorama==0.4.6
       - docopt==0.6.2
-      - nest-asyncio==1.5.6
+      - executing==1.2.0
+      - icecream==2.1.3
+      - nest-asyncio==1.5.7
       - pipreqs==0.4.13
+      - pygments==2.15.1
       - yarg==0.1.9
 prefix: /home/neko/miniconda3/envs/labelling_env
