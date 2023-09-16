@@ -434,20 +434,22 @@ class Labeller:
 
     def _fetch_data(self, filetype: str = "label"):
         """Fetch labels or data from file."""
-        if filetype == "label":
-            filetypes = [("pickle files", "*.pkl")]
-        elif filetype == "data":
-            filetypes = [("csv files", "*.csv")]
+        # if filetype == "label":
+        #     filetypes = [("pickle files", "*.pkl", "*")]
+        # elif filetype == "data":
+        #     filetypes = [("csv files", "*.csv")]
         filename = fd.askopenfilename(
             initialdir=Path(self.save_to).parent,
             title=f"Select {filetype} file",
-            filetypes=filetypes,
+            # filetypes=filetypes,
         )
         if filename:
-            if filetype == "label":
+            if filetype == "label" or Path(filename).name.startswith("label") and str(filename).endswith(".pkl"):
                 return pickle.load(open(filename, "rb"))
             elif filetype == "data":
                 return pd.read_csv(filename, index_col=0)
+            elif filetype == "metadata" or filename.endswith("_metadata"):
+                return fetch_metadata(Path(filename).parent)["labels"]["decomposition"]
 
     def load(
         self,
@@ -491,11 +493,8 @@ class Labeller:
         elif load_from is None:
             labels_asdict = self._fetch_data(filetype="label")
             if labels_asdict is not None:
-                labels = decompress_binary_matrix(
-                    labels_asdict, index=self._df.index, dtype=bool
-                )
-            else:
-                return
+                self.load(labels_asdict, erase=erase)
+            return
         else:
             raise ValueError(
                 "Expected Path, str, DataFrame or None,"
